@@ -1,0 +1,55 @@
+.{
+    // ─────────────────────────────────────────────────────────────────────
+    // labelle-nullfixture-backend manifest — pluggable-backends epic
+    // (labelle-assembler#386).
+    //
+    // This is an OUT-OF-TREE backend package: it lives in its own repo, NOT
+    // under the assembler's bundled `backends/` slot. The assembler fetches it
+    // into the package cache from a project's
+    //   .backend_package = .{ .name = "nullfixture", .repo = "...", .version }
+    // exactly the way a plugin is fetched (Phase 6a), then drives codegen
+    // entirely from THIS manifest — an external backend has no enum-path
+    // fallback, so the manifest is mandatory (manifest_splice.requireManifestIfExternal).
+    //
+    // It is a headless backend: a clone of the assembler's built-in `null`
+    // backend (no window / GPU / input / audio — every module is a no-op
+    // stub). That makes it the smallest backend that still produces a
+    // game binary which actually COMPILES and RUNS (a fixed-frame tick loop
+    // that exits cleanly), so it can verify the remote-fetch → resolve →
+    // generate → build pipeline end-to-end with zero native dependencies.
+    // ─────────────────────────────────────────────────────────────────────
+
+    // Package directory name. Plain data — the dir name no longer implies an
+    // enum tag (this backend has none).
+    .dir_name = "nullfixture",
+
+    // Dependency package name used in the generated build.zig
+    // `b.dependency("labelle_nullfixture", ...)` call. Matches the
+    // `labelle_{name}` convention the assembler's backend_registry derives.
+    .dep_name = "labelle_nullfixture",
+
+    // Run-loop style. The headless `main()` template owns its own bounded
+    // frame loop and does NOT consume the generated `{{lifecycle}}` block, so
+    // this selection does not change the emitted code; `.loop` matches the
+    // built-in null backend's effective lifecycle (callback = false).
+    .loop_style = .loop,
+
+    // Main-loop template (relative to this package root). The headless runner:
+    // a `while (frame < max_frames)` tick loop bounded by LABELLE_NULL_FRAMES,
+    // then a clean exit — no window/GPU/input/audio.
+    .main_loop_template = "templates/headless.txt",
+
+    // build.zig fragments. The headless backend wires its four no-op modules
+    // (gfx/input/audio/window) and links nothing native — so `link` is empty.
+    .build_fragments = .{
+        .backend_dep = "build_fragments/backend_dep.txt",
+        .link = "build_fragments/link.txt",
+    },
+
+    // No `{{placeholder}}`s: both fragments are emitted verbatim (the headless
+    // backend has no gamepad / imgui / hidapi conditionals to compute).
+    .params = .{
+        .backend_dep = .{},
+        .link = .{},
+    },
+}
