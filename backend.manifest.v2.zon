@@ -1,0 +1,60 @@
+.{
+    // ── nullfixture backend manifest, SCHEMA v2 (manifest-v2 epic #461).
+    //
+    // A v2 translation of this repo's v1 `backend.manifest.zon` +
+    // `build_fragments/{backend_dep,link}.txt` + `templates/headless.txt`.
+    // REQUIRED now that labelle-assembler#461 removed the v1/enum codegen path:
+    // an external backend is resolved + generated ENTIRELY from its v2 manifest,
+    // so a v1-only external backend can no longer be built. This mirrors
+    // labelle-null's v2 manifest (nullfixture is a standalone-repo clone of the
+    // built-in null backend). The v1 `backend.manifest.zon` is kept alongside for
+    // older assemblers.
+    //
+    // nullfixture is the SIMPLEST v2 backend: pure-Zig, zero native deps,
+    // headless, desktop-only — the smallest backend that still produces a game
+    // binary which compiles and RUNS (a bounded LABELLE_NULL_FRAMES tick loop,
+    // then a clean exit). Its purpose is to verify the remote-fetch → resolve →
+    // generate → build → run pipeline end-to-end (the assembler's external-null
+    // example), so it exercises the v2 codegen's FULLY-DECLARATIVE desktop path:
+    // no `build_hook`, no artifacts, no frameworks / system_libs / dep_options.
+    .manifest_version = 2,
+    .dir_name = "nullfixture",
+    .dep_name = "labelle_nullfixture",
+    // Official labelle-toolkit repo → may carry the reserved `labelle.*` id
+    // (backend_registry.validateProviderIdentity accepts `labelle.*` from an
+    // official/local repo). Replaces the v1 manifest's absent id (which the
+    // assembler warned it was deriving as `nullfixture`).
+    .id = "labelle.nullfixture",
+
+    // The one defining capability — carried forward from the v1 manifest. A
+    // non-empty set opts into resolve-time capability enforcement.
+    .capabilities = .{.headless},
+
+    // root_alias defaults to `backend_<name>`, so the generated root imports
+    // these as `backend_gfx`/`backend_input`/… like every other backend. The
+    // source files are the four no-op stubs this repo already ships.
+    .modules = .{
+        .{ .name = "gfx", .source = "src/gfx.zig" },
+        .{ .name = "input", .source = "src/input.zig" },
+        .{ .name = "audio", .source = "src/audio.zig" },
+        .{ .name = "window", .source = "src/window.zig" },
+    },
+
+    // No dep_options / system_libs / frameworks: pure Zig, nothing native to link.
+
+    .platforms = .{
+        // Desktop-only, headless (`templates/headless.txt`). The generated main
+        // drives a fixed-frame `while (frame < max_frames)` tick loop, so this is
+        // `.loop`, matching the v1 manifest's `loop_style = .loop`. No artifacts
+        // (the v1 link fragment is empty — nothing to link).
+        .desktop = .{
+            .entry = "templates/headless.txt",
+            .loop_style = .loop,
+            .target = .native,
+            .package = .binary,
+        },
+        // No android/ios/wasm — headless desktop only.
+    },
+
+    // No build_hook — a fully declarative, HOOKLESS backend.
+}
